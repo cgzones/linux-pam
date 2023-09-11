@@ -1186,6 +1186,8 @@ static int setup_limits(pam_handle_t *pamh,
 	if (res != 0)
 	  pam_syslog(pamh, LOG_ERR, "Could not set limit for '%s': %m",
 		     rlimit2str(i));
+	if (res == -1 && errno == EPERM)
+	    continue;
 	status |= res;
     }
 
