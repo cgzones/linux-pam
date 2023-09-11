@@ -1183,9 +1183,19 @@ static int setup_limits(pam_handle_t *pamh,
         if (pl->limits[i].limit.rlim_cur > pl->limits[i].limit.rlim_max)
             pl->limits[i].limit.rlim_cur = pl->limits[i].limit.rlim_max;
 	res = setrlimit(i, &pl->limits[i].limit);
-	if (res != 0)
-	  pam_syslog(pamh, LOG_ERR, "Could not set limit for '%s': %m",
-		     rlimit2str(i));
+	if (res != 0 && (i != RLIMIT_NOFILE
+	                    || pl->limits[i].limit.rlim_cur != RLIM_INFINITY))
+	{
+		int save_errno = errno;
+		pam_syslog(pamh, LOG_DEBUG,
+		           "Could not set limit for '%s' to soft=%ld, hard=%ld:"
+		           " %m; uid=%lu,euid=%lu", rlimit2str(i),
+		           pl->limits[i].limit.rlim_cur,
+		           pl->limits[i].limit.rlim_max,
+		           (unsigned long) getuid(),
+		           (unsigned long) geteuid());
+		errno = save_errno;
+	}
 	if (res == -1 && errno == EPERM)
 	    continue;
 	status |= res;
