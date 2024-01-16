@@ -529,6 +529,14 @@ static void parse_kernel_limits(pam_handle_t *pamh, struct pam_limit_s *pl, int 
     }
     free(line);
     fclose(limitsfile);
+
+    /* Cap the default soft nofile limit read from pid 1 to FD_SETSIZE
+     * since larger values can cause problems with fd_set overflow and
+     * systemd sets itself higher. */
+    if (pl->limits[RLIMIT_NOFILE].src_soft == LIMITS_DEF_KERNEL &&
+        pl->limits[RLIMIT_NOFILE].limit.rlim_cur > FD_SETSIZE) {
+      pl->limits[RLIMIT_NOFILE].limit.rlim_cur = FD_SETSIZE;
+    }
 }
 #endif
 
